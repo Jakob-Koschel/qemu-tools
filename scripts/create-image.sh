@@ -11,9 +11,6 @@ if [[ -z "$IMAGE" || -z "$DIR" ]]; then
   exit 1
 fi
 
-# Create a minimal Debian distribution in a directory.
-PREINSTALL_PKGS=linux-image-amd64,grub-pc
-
 # If ADD_PACKAGE is not defined as an external environment variable, use our default packages
 if [ -z ${ADD_PACKAGE+x} ]; then
     ADD_PACKAGE="make,git,vim,tmux"
@@ -92,6 +89,10 @@ case "$ARCH" in
         ;;
 esac
 
+# Create a minimal Debian distribution in a directory.
+# PREINSTALL_PKGS=linux-image-amd64,grub-pc
+PREINSTALL_PKGS=linux-image-$DEBARCH,grub-efi-$DEBARCH
+
 # Foreign architecture
 
 FOREIGN=false
@@ -154,23 +155,33 @@ fi
 
 # Build a disk image
 dd if=/dev/zero of=$IMAGE bs=1M seek=$SEEK count=1
-# create partitions
-parted -s $IMAGE -- mklabel msdos mkpart primary 1m 1.5g toggle 1 boot
+
+# Set partition table to GPT (UEFI)
+parted -s $IMAGE -- mktable gpt
+
+# Create OS partition
+parted -s $IMAGE -- mkpart EFI fat16 1MiB 10MiB
+parted -s $IMAGE -- set 1 msftdata on
+
+parted -s $IMAGE -- mkpart LINUX ext4 10MiB 100%
+
 # setup loop device
 LOOP_DEV=$(sudo losetup --show -f $IMAGE)
-LOOP_PARTITION=${LOOP_DEV}p1
+LOOP_PARTITION_EFI=${LOOP_DEV}p1
+LOOP_PARTITION_LINUX=${LOOP_DEV}p2
 sudo partprobe $LOOP_DEV
-sudo mkfs.ext4 -F $LOOP_PARTITION
+sudo mkfs.vfat -n EFI ${LOOP_PARTITION_EFI}
+sudo mkfs.ext4 -F $LOOP_PARTITION_LINUX
 
 # configure grub to make it bootable
-sudo sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200n8 root=\/dev\/sda1\"/g' \
+sudo sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200n8 root=\/dev\/sda2\"/g' \
     $DIR/etc/default/grub
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/g' \
     $DIR/etc/default/grub
 sudo sed -i 's/#GRUB_TERMINAL/GRUB_TERMINAL/g' $DIR/etc/default/grub
 
 sudo mkdir -p /mnt/$DIR
-sudo mount -o loop $LOOP_PARTITION /mnt/$DIR
+sudo mount -o loop $LOOP_PARTITION_LINUX /mnt/$DIR
 sudo cp -a $DIR/. /mnt/$DIR/.
 sudo umount /mnt/$DIR
 
