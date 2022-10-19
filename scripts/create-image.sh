@@ -174,7 +174,7 @@ sudo mkfs.vfat -n EFI ${LOOP_PARTITION_EFI}
 sudo mkfs.ext4 -F $LOOP_PARTITION_LINUX
 
 # configure grub to make it bootable
-sudo sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200n8 root=\/dev\/sda2\"/g' \
+sudo sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200n8\"/g' \
     $DIR/etc/default/grub
 sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/g' \
     $DIR/etc/default/grub

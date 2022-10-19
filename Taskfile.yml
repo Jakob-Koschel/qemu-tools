@@ -26,12 +26,6 @@ tasks:
       - scripts/create-image.sh --arch {{.ARCH}} --distribution {{.DISTRIBUTION}}
       - task: enter-mount-chroot
         vars:
-          CLI_ARGS: 'grub-mkconfig -o /boot/grub/grub.cfg'
-      # - task: enter-mount-chroot
-      #   vars:
-      #     CLI_ARGS: 'grub-install $LOOP_DEV'
-      - task: enter-mount-chroot
-        vars:
           CLI_ARGS: 'grub-install --target={{.GRUB_TARGET}}-efi --force-extra-removable --no-nvram --no-floppy --modules="part_msdos part_gpt" --grub-mkdevicemap=/boot/grub/device.map $LOOP_DEV'
       - task: enter-mount-chroot
         vars:
