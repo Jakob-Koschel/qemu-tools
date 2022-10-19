@@ -45,8 +45,15 @@ $QEMU_SYSTEM_x86_64 \
   -smp 1 \
   ${QEMU_CPU:+ -cpu ${QEMU_CPU}} \
   ${SGX_EPC} \
+  ${QEMU_9P_SHARED_FOLDER:+ -fsdev local,id=test_dev,path=${QEMU_9P_SHARED_FOLDER},security_model=none} \
+  ${QEMU_9P_SHARED_FOLDER:+ -device virtio-9p-pci,fsdev=test_dev,mount_tag=test_mount} \
   -m ${MEMORY} \
   -echr 17 \
   -serial mon:stdio \
   -snapshot \
   -no-reboot
+
+# to mount 9p inside qemu:
+# mount -o remount, rw /
+# mkdir -p /tmp/shared
+# mount -t 9p -o trans=virtio test_mount /tmp/shared/ -oversion=9p2000.L,posixacl,msize=104857600,cache=loose
