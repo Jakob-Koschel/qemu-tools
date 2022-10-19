@@ -4,8 +4,17 @@
 # KERNEL="-kernel ${KERNEL}/arch/x86/boot/bzImage"
 # APPEND="console=ttyS0 nokaslr nosmp maxcpus=1 rcu_nocbs=0 nmi_watchdog=0 ignore_loglevel modules=sd-mod,usb-storage,ext4 rootfstype=ext4 earlyprintk=serial"
 MEMORY="8192"
-QEMU_SYSTEM_x86_64="${QEMU_SYSTEM_x86_64:=qemu-system-x86_64}"
-QEMU_CPU="${QEMU_CPU:=qemu64,+smep,+smap}"
+
+if [ $ARCH = x86_64 ]; then
+  QEMU_SYSTEM_x86_64="${QEMU_SYSTEM_x86_64:=qemu-system-x86_64}"
+  QEMU_CPU="${QEMU_CPU:=qemu64,+smep,+smap}"
+  BIOS="$PWD/out/OVMF.fd"
+elif [ $ARCH = aarch64 ]; then
+  QEMU_SYSTEM_x86_64="${QEMU_SYSTEM_x86_64:=qemu-system-aarch64}"
+  QEMU_CPU="${QEMU_CPU:=max}"
+  QEMU_MACHINE="${QEMU_MACHINE:=virt}"
+  BIOS="/usr/share/qemu-efi-aarch64/QEMU_EFI.fd"
+fi
 
 HDA="file=./${IMAGE},format=raw"
 # APPEND="${APPEND} root=/dev/sda"
@@ -23,16 +32,18 @@ set -x
 # -fsdev local,id=test_dev,path=$PWD/shared,security_model=none -device virtio-9p-pci,fsdev=test_dev,mount_tag=test_mount
 
 $QEMU_SYSTEM_x86_64 \
+  ${BIOS:+ -bios ${BIOS}} \
   ${KERNEL:+ "${KERNEL}"} \
   ${APPEND:+ -append "${APPEND}"} \
   ${HDA:+ -drive "${HDA}"} \
   ${ATTACH_GDB:+ -gdb tcp::${GDB_PORT}} \
   ${ATTACH_GDB:+ -S} \
   ${ENABLE_KVM:+ -enable-kvm} \
+  ${QEMU_MACHINE:+ -machine ${QEMU_MACHINE}} \
   -display none \
   -nographic \
   -smp 1 \
-  -cpu ${QEMU_CPU} \
+  ${QEMU_CPU:+ -cpu ${QEMU_CPU}} \
   ${SGX_EPC} \
   -m ${MEMORY} \
   -echr 17 \
