@@ -4,6 +4,8 @@ tasks:
   qemu:
     desc: run image in qemu
     env:
+      ARCH: 'x86_64'
+      # ARCH: 'aarch64'
       IMAGE: 'out/bullseye.img'
     cmds:
       - scripts/run-qemu.sh
@@ -14,13 +16,23 @@ tasks:
       IMAGE: 'out/bullseye.img'
       DIR: 'out/mnt'
     vars:
+      ARCH: 'x86_64'
+      GRUB_TARGET: 'x86_64'
+      # ARCH: 'aarch64'
+      # GRUB_TARGET: 'arm64'
       DISTRIBUTION: 'bullseye'
     cmds:
       - mkdir -p out
-      - scripts/create-image.sh --distribution {{.DISTRIBUTION}}
+      - scripts/create-image.sh --arch {{.ARCH}} --distribution {{.DISTRIBUTION}}
       - task: enter-mount-chroot
         vars:
-          CLI_ARGS: 'grub-install $LOOP_DEV'
+          CLI_ARGS: 'grub-mkconfig -o /boot/grub/grub.cfg'
+      # - task: enter-mount-chroot
+      #   vars:
+      #     CLI_ARGS: 'grub-install $LOOP_DEV'
+      - task: enter-mount-chroot
+        vars:
+          CLI_ARGS: 'grub-install --target={{.GRUB_TARGET}}-efi --force-extra-removable --no-nvram --no-floppy --modules="part_msdos part_gpt" --grub-mkdevicemap=/boot/grub/device.map $LOOP_DEV'
       - task: enter-mount-chroot
         vars:
           CLI_ARGS: 'update-grub'
