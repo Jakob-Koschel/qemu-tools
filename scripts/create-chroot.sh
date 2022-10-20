@@ -6,8 +6,8 @@
 
 set -eux
 
-if [ -z "$CHROOT" ] || [ -z "$DISTRIBUTION" ] || [ -z "$ARCH" ]; then
-  echo "ARCH, CHROOT and DISTRIBUTION need to be set!"
+if [ -z "$CHROOT" ] || [-z "$DISTRIBUTION" ] || [ -z "$RELEASE" ] || [ -z "$ARCH" ]; then
+  echo "ARCH, CHROOT, DISTRIBUTION and RELEASE need to be set!"
   exit 1
 fi
 
@@ -29,7 +29,7 @@ case "$ARCH" in
         ;;
 esac
 
-scripts/create-chroot-debootstrap.sh --arch $ARCH --distribution $DISTRIBUTION
+scripts/create-chroot-debootstrap.sh --arch $ARCH --distribution $DISTRIBUTION --release $RELEASE
 
 CHROOT_HOSTNAME="${CHROOT_HOSTNAME:-}"
 if [ -n "$CHROOT_HOSTNAME" ]; then

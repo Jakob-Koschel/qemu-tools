@@ -13,15 +13,18 @@ fi
 
 # Variables affected by options
 ARCH=$(uname -m)
+DISTRIBUTION=debian
 RELEASE=bullseye
 FEATURE=minimal
+MIRROR=http://deb.debian.org/debian/
 
 # Display help function
 display_help() {
     echo "Usage: $0 [option...] " >&2
     echo
     echo "   -a, --arch                 Set architecture"
-    echo "   -d, --distribution         Set on which debian distribution to create"
+    echo "   -d, --distribution         Set which distribution (ubuntu/debian) to create"
+    echo "   -r, --release              Set which release to create"
     echo "   -f, --feature              Check what packages to install in the image, options are minimal, full"
     echo "   -h, --help                 Display help message"
     echo
@@ -42,6 +45,10 @@ while true; do
             shift 2
             ;;
         -d | --distribution)
+	    DISTRIBUTION=$2
+            shift 2
+            ;;
+        -r | --release)
 	    RELEASE=$2
             shift 2
             ;;
@@ -75,6 +82,23 @@ case "$ARCH" in
         ;;
     *)
         DEBARCH=$ARCH
+        ;;
+esac
+
+case "$DISTRIBUTION" in
+    ubuntu)
+        if [ "$DEBARCH" == amd64 ]; then
+            MIRROR=http://archive.ubuntu.com/ubuntu/
+        else
+            MIRROR=http://ports.ubuntu.com/ubuntu-ports
+        fi
+        ;;
+    debian)
+        MIRROR=http://deb.debian.org/debian/
+        ;;
+    *)
+        echo "unknown distribution"
+        exit 1
         ;;
 esac
 
@@ -113,13 +137,12 @@ sudo chmod 0755 $CHROOT
 
 # 1. debootstrap stage
 
-# TODO allow ubuntu and also think about adding arch-bootstrap for example
 DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $CHROOT"
 if [ $FOREIGN = "true" ]; then
     DEBOOTSTRAP_PARAMS="--foreign $DEBOOTSTRAP_PARAMS"
 fi
 
-sudo debootstrap $DEBOOTSTRAP_PARAMS
+sudo debootstrap $DEBOOTSTRAP_PARAMS $MIRROR
 
 # 2. debootstrap stage: only necessary if target != host architecture
 

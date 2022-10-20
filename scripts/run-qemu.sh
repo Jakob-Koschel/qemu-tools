@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # KERNEL="$HOME/Developer/linux/master"
-# KERNEL="-kernel ${KERNEL}/arch/x86/boot/bzImage"
+# KERNEL="${KERNEL}/arch/x86/boot/bzImage"
 # APPEND="console=ttyS0 nokaslr nosmp maxcpus=1 rcu_nocbs=0 nmi_watchdog=0 ignore_loglevel modules=sd-mod,usb-storage,ext4 rootfstype=ext4 earlyprintk=serial"
 MEMORY="8192"
 
@@ -16,8 +16,8 @@ elif [ $ARCH = aarch64 ]; then
   BIOS="/usr/share/qemu-efi-aarch64/QEMU_EFI.fd"
 fi
 
-HDA="file=./${IMAGE},format=raw"
-# APPEND="${APPEND} root=/dev/sda"
+DRIVE="file=./${IMAGE},format=raw"
+# APPEND="${APPEND} root=/dev/sda2"
 
 if [ -n "${ENABLE_SGX}" ]; then
   QEMU_CPU="host,+sgx-provisionkey"
@@ -33,9 +33,10 @@ set -x
 
 $QEMU_SYSTEM_x86_64 \
   ${BIOS:+ -bios ${BIOS}} \
-  ${KERNEL:+ "${KERNEL}"} \
+  ${KERNEL:+ -kernel "${KERNEL}"} \
   ${APPEND:+ -append "${APPEND}"} \
-  ${HDA:+ -drive "${HDA}"} \
+  ${DRIVE:+ -drive "${DRIVE}"} \
+  ${HDA:+ -hda "${HDA}"} \
   ${ATTACH_GDB:+ -gdb tcp::${GDB_PORT}} \
   ${ATTACH_GDB:+ -S} \
   ${ENABLE_KVM:+ -enable-kvm} \

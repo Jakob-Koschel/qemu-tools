@@ -7,9 +7,15 @@ env:
   # ARCH:            'aarch64'
   # DEBARCH:         'arm64'
   # GRUB_TARGET:     'arm64'
-  DISTRIBUTION:    'bullseye'
+
+  DISTRIBUTION:    'debian'
+  RELEASE:         'bullseye'
   IMAGE:           'out/bullseye.img'
-  IMAGE_SIZE:      '2047'
+  # DISTRIBUTION:    'ubuntu'
+  # RELEASE:         'jammy'
+  # IMAGE:           'out/jammy.img'
+
+  IMAGE_SIZE:      '4095'
   CHROOT:          'out/chroot'
   MNT:             'out/mnt'
   CHROOT_HOSTNAME: 'jkl-vm'
@@ -18,10 +24,6 @@ env:
 tasks:
   qemu:
     desc: run image in qemu
-    env:
-      ARCH: 'x86_64'
-      # ARCH: 'aarch64'
-      IMAGE: 'out/bullseye.img'
     cmds:
       - scripts/run-qemu.sh
 
@@ -38,7 +40,16 @@ tasks:
     cmds:
       - task: create-chroot
         vars:
-          ADD_PACKAGES: "linux-image-{{.DEBARCH}},grub-efi-{{.DEBARCH}}"
+          ADD_PACKAGES:
+            sh: |
+              case "{{.DISTRIBUTION}}" in
+                  ubuntu)
+                      echo "initramfs-tools,linux-image-generic,grub-efi-{{.DEBARCH}}"
+                      ;;
+                  debian)
+                      echo "initramfs-tools,linux-image-{{.DEBARCH}},grub-efi-{{.DEBARCH}}"
+                      ;;
+              esac
       - scripts/create-image.sh
       - sudo rm -rf {{.CHROOT}}
       - task: image-install-grub
@@ -54,7 +65,7 @@ tasks:
       - task: enter-mount-chroot
         vars:
           CLI_ARGS: |
-            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/g'
+            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\".*\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/g'
             /etc/default/grub
       - task: enter-mount-chroot
         vars:
@@ -63,10 +74,25 @@ tasks:
             /etc/default/grub
       - task: enter-mount-chroot
         vars:
+          CLI_ARGS:
+            sh: |
+              GRUB_EXTRA_ARGS=""
+              # --force-extra-removable does not exist on ubuntu and is default behavior
+              if [ {{.DISTRIBUTION}} = debian ]; then
+                GRUB_EXTRA_ARGS="--force-extra-removable"
+              fi
+              echo "grub-install --target={{.GRUB_TARGET}}-efi
+                --efi-directory=/boot/efi
+                $GRUB_EXTRA_ARGS
+                --no-nvram
+                --no-floppy
+                --modules=\"part_msdos part_gpt\"
+                --grub-mkdevicemap=/boot/grub/device.map
+                $LOOP_DEV"
+      - task: enter-mount-chroot
+        vars:
           CLI_ARGS: |
-            grub-install --target={{.GRUB_TARGET}}-efi --force-extra-removable --no-nvram
-            --no-floppy --modules="part_msdos part_gpt"
-            --grub-mkdevicemap=/boot/grub/device.map $LOOP_DEV
+            update-initramfs -c -k all
       - task: enter-mount-chroot
         vars:
           CLI_ARGS: |
