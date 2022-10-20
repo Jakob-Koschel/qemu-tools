@@ -1,5 +1,16 @@
 version: '3'
 
+env:
+  ARCH:         'x86_64'
+  GRUB_TARGET:  'x86_64'
+  # ARCH:         'aarch64'
+  # GRUB_TARGET:  'arm64'
+  DISTRIBUTION: 'bullseye'
+  IMAGE:        'out/bullseye.img'
+  IMAGE_SIZE:   '2047'
+  CHROOT:       'out/chroot'
+  MNT:          'out/mnt'
+
 tasks:
   qemu:
     desc: run image in qemu
@@ -10,40 +21,58 @@ tasks:
     cmds:
       - scripts/run-qemu.sh
 
-  create-image:
-    desc: create syzkaller image
-    env:
-      IMAGE: 'out/bullseye.img'
-      DIR: 'out/mnt'
-    vars:
-      ARCH: 'x86_64'
-      GRUB_TARGET: 'x86_64'
-      # ARCH: 'aarch64'
-      # GRUB_TARGET: 'arm64'
-      DISTRIBUTION: 'bullseye'
+  create-chroot:
+    desc: create chroot environment
     cmds:
       - mkdir -p out
-      - scripts/create-image.sh --arch {{.ARCH}} --distribution {{.DISTRIBUTION}}
+      - scripts/create-chroot.sh --arch {{.ARCH}} --distribution {{.DISTRIBUTION}}
+
+  create-image:
+    desc: create syzkaller image
+    cmds:
+      - task: create-chroot
+      - scripts/create-image.sh
+      - sudo rm -rf {{.CHROOT}}
+      - task: image-install-grub
+
+  image-install-grub:
+    desc: install grub efi on create image to boot on hardware / qemu
+    cmds:
       - task: enter-mount-chroot
         vars:
-          CLI_ARGS: 'grub-install --target={{.GRUB_TARGET}}-efi --force-extra-removable --no-nvram --no-floppy --modules="part_msdos part_gpt" --grub-mkdevicemap=/boot/grub/device.map $LOOP_DEV'
+          CLI_ARGS: |
+            sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200n8\"/g'
+            /etc/default/grub
       - task: enter-mount-chroot
         vars:
-          CLI_ARGS: 'update-grub'
+          CLI_ARGS: |
+            sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/g'
+            /etc/default/grub
+      - task: enter-mount-chroot
+        vars:
+          CLI_ARGS: |
+            sed -i 's/#GRUB_TERMINAL/GRUB_TERMINAL/g'
+            /etc/default/grub
+      - task: enter-mount-chroot
+        vars:
+          CLI_ARGS: |
+            grub-install --target={{.GRUB_TARGET}}-efi --force-extra-removable --no-nvram
+            --no-floppy --modules="part_msdos part_gpt"
+            --grub-mkdevicemap=/boot/grub/device.map $LOOP_DEV
+      - task: enter-mount-chroot
+        vars:
+          CLI_ARGS: |
+            update-grub
 
   mount-image:
     desc: mount a image using a loop device
     env:
-      IMAGE: 'out/bullseye.img'
-      MNT: 'out/mnt'
       COMMAND: '{{.CLI_ARGS}}'
     cmds:
       - scripts/mount-image.sh
 
   enter-chroot:
     desc: enter a chroot environment
-    env:
-      DIR: 'out/mnt'
     cmds:
       - bash scripts/enter-chroot.sh "{{.CLI_ARGS}}"
 
@@ -52,7 +81,7 @@ tasks:
     cmds:
       - task: mount-image
         vars:
-          CLI_ARGS: "task enter-chroot -- {{.CLI_ARGS}}"
+          CLI_ARGS: "CHROOT={{.MNT}} task enter-chroot -- {{.CLI_ARGS}}"
 
   chroot-cmd:
     desc: run command within chroot
