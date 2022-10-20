@@ -1,15 +1,19 @@
 version: '3'
 
 env:
-  ARCH:         'x86_64'
-  GRUB_TARGET:  'x86_64'
-  # ARCH:         'aarch64'
-  # GRUB_TARGET:  'arm64'
-  DISTRIBUTION: 'bullseye'
-  IMAGE:        'out/bullseye.img'
-  IMAGE_SIZE:   '2047'
-  CHROOT:       'out/chroot'
-  MNT:          'out/mnt'
+  ARCH:            'x86_64'
+  DEBARCH:         'amd64'
+  GRUB_TARGET:     'x86_64'
+  # ARCH:            'aarch64'
+  # DEBARCH:         'arm64'
+  # GRUB_TARGET:     'arm64'
+  DISTRIBUTION:    'bullseye'
+  IMAGE:           'out/bullseye.img'
+  IMAGE_SIZE:      '2047'
+  CHROOT:          'out/chroot'
+  MNT:             'out/mnt'
+  CHROOT_HOSTNAME: 'jkl-vm'
+  CHROOT_USERNAME: 'jkl'
 
 tasks:
   qemu:
@@ -23,14 +27,18 @@ tasks:
 
   create-chroot:
     desc: create chroot environment
+    env:
+      ADD_PACKAGES: "{{.ADD_PACKAGES}}"
     cmds:
       - mkdir -p out
-      - scripts/create-chroot.sh --arch {{.ARCH}} --distribution {{.DISTRIBUTION}}
+      - scripts/create-chroot.sh
 
   create-image:
     desc: create syzkaller image
     cmds:
       - task: create-chroot
+        vars:
+          ADD_PACKAGES: "linux-image-{{.DEBARCH}},grub-efi-{{.DEBARCH}}"
       - scripts/create-image.sh
       - sudo rm -rf {{.CHROOT}}
       - task: image-install-grub
@@ -41,7 +49,7 @@ tasks:
       - task: enter-mount-chroot
         vars:
           CLI_ARGS: |
-            sed -i 's/GRUB_CMDLINE_LINUX=\"\"/GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200n8\"/g'
+            sed -i 's/GRUB_CMDLINE_LINUX=\".*\"/GRUB_CMDLINE_LINUX=\"rw console=tty0 console=ttyS0,115200n8\"/g'
             /etc/default/grub
       - task: enter-mount-chroot
         vars:
