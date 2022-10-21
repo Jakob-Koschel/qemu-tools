@@ -6,7 +6,7 @@
 # INITRD="initrd.img"
 # APPEND="console=ttyS0 nokaslr nosmp maxcpus=1 rcu_nocbs=0 nmi_watchdog=0 ignore_loglevel modules=sd-mod,usb-storage,ext4 rootfstype=ext4 earlyprintk=serial net.ifnames=0"
 
-if [ $(uname -m) != $ARCH ]; then
+if [ $(uname -m) != $GRUB_TARGET ]; then
   # disable ACCEL if running different architecture
   unset ENABLE_ACCEL
 fi
@@ -19,7 +19,14 @@ fi
 if [ "$(uname)" == "Darwin" ]; then
   if [ -n "$ENABLE_ACCEL" ]; then ACCEL="hvf"; fi
   if [ -n "$ENABLE_EFI" ]; then
-    QEMU_BIOS=${QEMU_BIOS:-"/opt/homebrew/share/qemu/edk2-$ARCH-code.fd"}
+    if [ $ARCH = x86_64 ]; then
+      # wget https://www.kraxel.org/repos/jenkins/edk2/edk2.git-ovmf-x64-0-20220719.209.gf0064ac3af.EOL.no.nore.updates.noarch.rpm
+      # mkdir -p out/edk2.ovmf.x64
+      # tar -xf edk2.git-ovmf-x64-0-20220719.209.gf0064ac3af.EOL.no.nore.updates.noarch.rpm -C out/edk2.ovmf.x64
+      QEMU_BIOS="$PWD/out/edk2.ovmf.x64/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd"
+    elif [ $ARCH = aarch64 ]; then
+      QEMU_BIOS=${QEMU_BIOS:-"/opt/homebrew/share/qemu/edk2-$ARCH-code.fd"}
+    fi
   fi
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
   if [ -n "$ENABLE_ACCEL" ]; then ACCEL="kvm"; fi
