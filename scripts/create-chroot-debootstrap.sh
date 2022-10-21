@@ -137,7 +137,11 @@ sudo chmod 0755 $CHROOT
 
 # 1. debootstrap stage
 
-DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --include=$PREINSTALL_PKGS --components=main,contrib,non-free $RELEASE $CHROOT"
+COMPONENTS="main,contrib,non-free"
+if [ "$DISTRIBUTION" == ubuntu ]; then
+    COMPONENTS="$COMPONENTS,universe"
+fi
+DEBOOTSTRAP_PARAMS="--arch=$DEBARCH --include=$PREINSTALL_PKGS --components=$COMPONENTS $RELEASE $CHROOT"
 if [ $FOREIGN = "true" ]; then
     DEBOOTSTRAP_PARAMS="--foreign $DEBOOTSTRAP_PARAMS"
 fi

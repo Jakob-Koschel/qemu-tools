@@ -21,6 +21,11 @@ env:
   CHROOT_HOSTNAME: 'jkl-vm'
   CHROOT_USERNAME: 'jkl'
 
+  # enable networking
+  QEMU_NET_DEVICE: 'e1000,netdev=net0'
+  QEMU_NETDEV:     'user,id=net0'
+  QEMU_SSH_PORT:   '5555'
+
 tasks:
   qemu:
     desc: run image in qemu
@@ -42,12 +47,13 @@ tasks:
         vars:
           ADD_PACKAGES:
             sh: |
+              echo -n "linux-firmware,ifupdown,net-tools,initramfs-tools,grub-efi-{{.DEBARCH}}"
               case "{{.DISTRIBUTION}}" in
                   ubuntu)
-                      echo "initramfs-tools,linux-image-generic,grub-efi-{{.DEBARCH}}"
+                      echo ",linux-image-generic"
                       ;;
                   debian)
-                      echo "initramfs-tools,linux-image-{{.DEBARCH}},grub-efi-{{.DEBARCH}}"
+                      echo ",linux-image-{{.DEBARCH}}"
                       ;;
               esac
       - scripts/create-image.sh
@@ -60,7 +66,7 @@ tasks:
       - task: enter-mount-chroot
         vars:
           CLI_ARGS: |
-            sed -i 's/GRUB_CMDLINE_LINUX=\".*\"/GRUB_CMDLINE_LINUX=\"rw console=tty0 console=ttyS0,115200n8\"/g'
+            sed -i 's/GRUB_CMDLINE_LINUX=\".*\"/GRUB_CMDLINE_LINUX=\"rw console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0\"/g'
             /etc/default/grub
       - task: enter-mount-chroot
         vars:

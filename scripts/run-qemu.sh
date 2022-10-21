@@ -28,14 +28,14 @@ fi
 
 set -x
 
-# 9p:
-# -fsdev local,id=test_dev,path=$PWD/shared,security_model=none -device virtio-9p-pci,fsdev=test_dev,mount_tag=test_mount
-
 $QEMU_SYSTEM_x86_64 \
   ${BIOS:+ -bios ${BIOS}} \
   ${KERNEL:+ -kernel "${KERNEL}"} \
+  ${INITRD:+ -initrd "${INITRD}"} \
   ${APPEND:+ -append "${APPEND}"} \
   ${DRIVE:+ -drive "${DRIVE}"} \
+  ${QEMU_NET_DEVICE:+ -device "${QEMU_NET_DEVICE}"} \
+  ${QEMU_NETDEV:+ -netdev "${QEMU_NETDEV}${QEMU_SSH_PORT:+,hostfwd=tcp::${QEMU_SSH_PORT}-:22}"} \
   ${HDA:+ -hda "${HDA}"} \
   ${ATTACH_GDB:+ -gdb tcp::${GDB_PORT}} \
   ${ATTACH_GDB:+ -S} \
@@ -55,6 +55,5 @@ $QEMU_SYSTEM_x86_64 \
   -no-reboot
 
 # to mount 9p inside qemu:
-# mount -o remount, rw /
 # mkdir -p /tmp/shared
 # mount -t 9p -o trans=virtio test_mount /tmp/shared/ -oversion=9p2000.L,posixacl,msize=104857600,cache=loose

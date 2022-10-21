@@ -31,6 +31,9 @@ esac
 
 scripts/create-chroot-debootstrap.sh --arch $ARCH --distribution $DISTRIBUTION --release $RELEASE
 
+# automatically enable eth0 interface with dhcp
+printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a $CHROOT/etc/network/interfaces
+
 CHROOT_HOSTNAME="${CHROOT_HOSTNAME:-}"
 if [ -n "$CHROOT_HOSTNAME" ]; then
     echo $CHROOT_HOSTNAME | sudo tee $CHROOT/etc/hostname
