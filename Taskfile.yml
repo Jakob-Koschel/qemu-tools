@@ -1,9 +1,14 @@
 version: '3'
 
 env:
+  ENABLE_ACCEL:    '1'
+  ENABLE_EFI:      '1'
+  ENABLE_SNAPSHOT: '1'
+
   ARCH:            'x86_64'
   DEBARCH:         'amd64'
   GRUB_TARGET:     'x86_64'
+
   # ARCH:            'aarch64'
   # DEBARCH:         'arm64'
   # GRUB_TARGET:     'arm64'
@@ -25,6 +30,9 @@ env:
   QEMU_NET_DEVICE: 'e1000,netdev=net0'
   QEMU_NETDEV:     'user,id=net0'
   QEMU_SSH_PORT:   '5555'
+
+  QEMU_CORES:      '2'
+  QEMU_MEMORY:     '8192'
 
 tasks:
   qemu:
