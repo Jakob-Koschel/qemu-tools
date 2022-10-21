@@ -154,15 +154,3 @@ if [ $FOREIGN = "true" ]; then
     sudo cp $(which qemu-$ARCH-static) $CHROOT/$(which qemu-$ARCH-static)
     sudo chroot $CHROOT /bin/bash -c "/debootstrap/debootstrap --second-stage"
 fi
-
-# Set some defaults and enable promtless ssh to the machine for root.
-# sudo sed -i '/^root/ { s/:x:/::/ }' $CHROOT/etc/passwd
-# echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a $CHROOT/etc/inittab
-# printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a $CHROOT/etc/network/interfaces
-# echo -en "127.0.0.1\tlocalhost\n" | sudo tee $CHROOT/etc/hosts
-# echo "nameserver 8.8.8.8" | sudo tee -a $CHROOT/etc/resolve.conf
-# echo "syzkaller" | sudo tee $CHROOT/etc/hostname
-
-# ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
-# sudo mkdir -p $CHROOT/root/.ssh/
-# cat $RELEASE.id_rsa.pub | sudo tee $CHROOT/root/.ssh/authorized_keys
