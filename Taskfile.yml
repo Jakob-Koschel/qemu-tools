@@ -47,13 +47,13 @@ tasks:
         vars:
           ADD_PACKAGES:
             sh: |
-              echo -n "linux-firmware,ifupdown,net-tools,initramfs-tools,grub-efi-{{.DEBARCH}}"
+              echo -n "ifupdown,net-tools,initramfs-tools,grub-efi-{{.DEBARCH}}"
               case "{{.DISTRIBUTION}}" in
                   ubuntu)
-                      echo ",linux-image-generic"
+                      echo ",linux-firmware,linux-image-generic"
                       ;;
                   debian)
-                      echo ",linux-image-{{.DEBARCH}}"
+                      echo ",firmware-realtek,linux-image-{{.DEBARCH}}"
                       ;;
               esac
       - scripts/create-image.sh
