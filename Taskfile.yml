@@ -5,20 +5,18 @@ env:
   ENABLE_EFI:      '1'
   ENABLE_SNAPSHOT: '1'
 
-  ARCH:            'x86_64'
-  DEBARCH:         'amd64'
-  GRUB_TARGET:     'x86_64'
+  ARCH:
+    sh: |
+      echo $(uname -m)
 
-  # ARCH:            'aarch64'
-  # DEBARCH:         'arm64'
-  # GRUB_TARGET:     'arm64'
-
-  DISTRIBUTION:    'debian'
-  RELEASE:         'bullseye'
-  IMAGE:           'out/bullseye.img'
-  # DISTRIBUTION:    'ubuntu'
-  # RELEASE:         'jammy'
-  # IMAGE:           'out/jammy.img'
+  # DISTRIBUTION:    'debian'
+  # RELEASE:         'bullseye'
+  # IMAGE:           'out/bullseye.img'
+  DISTRIBUTION:    'ubuntu'
+  RELEASE:         'jammy'
+  IMAGE:
+    sh: |
+      echo "out/jammy-$(uname -m).img"
 
   IMAGE_SIZE:      '4095'
   CHROOT:          'out/chroot'
@@ -37,57 +35,131 @@ env:
 tasks:
   qemu:
     desc: run image in qemu
+    env:
+      ARCH: "{{.ARCH}}"
+      IMAGE: "{{.IMAGE}}"
     cmds:
       - scripts/run-qemu.sh
+
+  qemu-x86_64:
+    desc: run x86_64 image in qemu
+    cmds:
+      - task: qemu
+        vars:
+          ARCH:   'x86_64'
+          IMAGE:  'out/{{.RELEASE}}-x86_64.img'
+
+  qemu-arm64:
+    desc: run arm64 image in qemu
+    cmds:
+      - task: qemu
+        vars:
+          ARCH:   'arm64'
+          IMAGE:  'out/{{.RELEASE}}-arm64.img'
 
   create-chroot:
     desc: create chroot environment
     env:
+      ARCH:         "{{.ARCH}}"
       ADD_PACKAGES: "{{.ADD_PACKAGES}}"
     cmds:
       - mkdir -p out
       - scripts/create-chroot.sh
 
-  create-image:
-    desc: create syzkaller image
+  create-chroot-arm64:
+    desc: create arm64 chroot environment
     cmds:
       - task: create-chroot
         vars:
+          ARCH: 'arm64'
+
+  create-chroot-x86_64:
+    desc: create x86_64 chroot environment
+    cmds:
+      - task: create-chroot
+        vars:
+          ARCH: 'x86_64'
+
+  create-image:
+    desc: create syzkaller image
+    env:
+      IMAGE: "{{.IMAGE}}"
+    cmds:
+      - task: create-chroot
+        vars:
+          ARCH: "{{.ARCH}}"
           ADD_PACKAGES:
             sh: |
-              echo -n "ifupdown,net-tools,initramfs-tools,grub-efi-{{.DEBARCH}}"
+              case "{{.ARCH}}" in
+                  arm64)
+                      DEBARCH=arm64
+                      ;;
+                  x86_64)
+                      DEBARCH=amd64
+                      ;;
+                  *)
+                      DEBARCH=$ARCH
+                      ;;
+              esac
+              echo -n "ifupdown,net-tools,initramfs-tools,grub-efi-${DEBARCH}"
               case "{{.DISTRIBUTION}}" in
                   ubuntu)
                       echo ",linux-firmware,linux-image-generic"
                       ;;
                   debian)
-                      echo ",firmware-realtek,linux-image-{{.DEBARCH}}"
+                      echo ",firmware-realtek,linux-image-${DEBARCH}"
                       ;;
               esac
       - scripts/create-image.sh
       - sudo rm -rf {{.CHROOT}}
       - task: image-install-grub
+        vars:
+          IMAGE: "{{.IMAGE}}"
+          ARCH: "{{.ARCH}}"
+
+  create-image-arm64:
+    desc: create arm64 image
+    cmds:
+      - task: create-image
+        vars:
+          ARCH:            'arm64'
+          IMAGE:           'out/{{.RELEASE}}-arm64.img'
+
+  create-image-x86_64:
+    desc: create x86_64 image
+    cmds:
+      - task: create-image
+        vars:
+          ARCH:            'x86_64'
+          IMAGE:           'out/{{.RELEASE}}-x86_64.img'
 
   image-install-grub:
     desc: install grub efi on create image to boot on hardware / qemu
+    env:
+      ARCH:   "{{.ARCH}}"
+      IMAGE:  "{{.IMAGE}}"
     cmds:
       - task: enter-mount-chroot
         vars:
+          IMAGE:  "{{.IMAGE}}"
           CLI_ARGS: |
             sed -i 's/GRUB_CMDLINE_LINUX=\".*\"/GRUB_CMDLINE_LINUX=\"rw console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0\"/g'
             /etc/default/grub
       - task: enter-mount-chroot
         vars:
+          IMAGE:  "{{.IMAGE}}"
           CLI_ARGS: |
             sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT=\".*\"/GRUB_CMDLINE_LINUX_DEFAULT=\"\"/g'
             /etc/default/grub
       - task: enter-mount-chroot
         vars:
+          IMAGE:  "{{.IMAGE}}"
           CLI_ARGS: |
             sed -i 's/#GRUB_TERMINAL/GRUB_TERMINAL/g'
             /etc/default/grub
       - task: enter-mount-chroot
         vars:
+          IMAGE:  "{{.IMAGE}}"
           CLI_ARGS:
             sh: |
               GRUB_EXTRA_ARGS=""
@@ -95,7 +167,7 @@ tasks:
               if [ {{.DISTRIBUTION}} = debian ]; then
                 GRUB_EXTRA_ARGS="--force-extra-removable"
               fi
-              echo "grub-install --target={{.GRUB_TARGET}}-efi
+              echo "grub-install --target={{.ARCH}}-efi
                 --efi-directory=/boot/efi
                 $GRUB_EXTRA_ARGS
                 --no-nvram
@@ -105,16 +177,19 @@ tasks:
                 $LOOP_DEV"
       - task: enter-mount-chroot
         vars:
+          IMAGE:  "{{.IMAGE}}"
           CLI_ARGS: |
             update-initramfs -c -k all
       - task: enter-mount-chroot
         vars:
+          IMAGE:  "{{.IMAGE}}"
           CLI_ARGS: |
             update-grub
 
   mount-image:
     desc: mount a image using a loop device
     env:
+      IMAGE:   '{{.IMAGE}}'
       COMMAND: '{{.CLI_ARGS}}'
     cmds:
       - scripts/mount-image.sh
@@ -126,9 +201,12 @@ tasks:
 
   enter-mount-chroot:
     desc: enter a chroot within an image
+    env:
+      IMAGE: "{{.IMAGE}}"
     cmds:
       - task: mount-image
         vars:
+          IMAGE:    "{{.IMAGE}}"
           CLI_ARGS: "CHROOT={{.MNT}} task enter-chroot -- {{.CLI_ARGS}}"
 
   chroot-cmd:

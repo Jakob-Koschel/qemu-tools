@@ -12,14 +12,8 @@ if [ -z "$CHROOT" ] || [-z "$DISTRIBUTION" ] || [ -z "$RELEASE" ] || [ -z "$ARCH
 fi
 
 case "$ARCH" in
-    ppc64le)
-        DEBARCH=ppc64el
-        ;;
-    aarch64)
+    arm64)
         DEBARCH=arm64
-        ;;
-    arm)
-        DEBARCH=armel
         ;;
     x86_64)
         DEBARCH=amd64
@@ -37,6 +31,7 @@ printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a $CHROOT/etc/network/i
 CHROOT_HOSTNAME="${CHROOT_HOSTNAME:-}"
 if [ -n "$CHROOT_HOSTNAME" ]; then
     echo $CHROOT_HOSTNAME | sudo tee $CHROOT/etc/hostname
+    echo -en "$CHROOT_HOSTNAME\tlocalhost\n" | sudo tee -a $CHROOT/etc/hosts
 fi
 
 CHROOT_USERNAME="${CHROOT_USERNAME:-}"

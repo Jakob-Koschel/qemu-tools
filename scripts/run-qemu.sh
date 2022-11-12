@@ -6,7 +6,7 @@
 # INITRD="initrd.img"
 # APPEND="console=ttyS0 nokaslr nosmp maxcpus=1 rcu_nocbs=0 nmi_watchdog=0 ignore_loglevel modules=sd-mod,usb-storage,ext4 rootfstype=ext4 earlyprintk=serial net.ifnames=0"
 
-if [ $(uname -m) != $GRUB_TARGET ]; then
+if [ $(uname -m) != $ARCH ]; then
   # disable ACCEL if running different architecture
   unset ENABLE_ACCEL
 fi
@@ -24,8 +24,8 @@ if [ "$(uname)" == "Darwin" ]; then
       # mkdir -p out/edk2.ovmf.x64
       # tar -xf edk2.git-ovmf-x64-0-20220719.209.gf0064ac3af.EOL.no.nore.updates.noarch.rpm -C out/edk2.ovmf.x64
       QEMU_BIOS="$PWD/out/edk2.ovmf.x64/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd"
-    elif [ $ARCH = aarch64 ]; then
-      QEMU_BIOS=${QEMU_BIOS:-"/opt/homebrew/share/qemu/edk2-$ARCH-code.fd"}
+    elif [ $ARCH = arm64 ]; then
+      QEMU_BIOS=${QEMU_BIOS:-"/opt/homebrew/share/qemu/edk2-aarch64-code.fd"}
     fi
   fi
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
@@ -33,7 +33,7 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
   if [ -n "$ENABLE_EFI" ]; then
     if [ $ARCH = x86_64 ]; then
       QEMU_BIOS=${QEMU_BIOS:-"/usr/share/ovmf/OVMF.fd"}
-    elif [ $ARCH = aarch64 ]; then
+    elif [ $ARCH = arm64 ]; then
       QEMU_BIOS=${QEMU_BIOS:-"/usr/share/qemu-efi-aarch64/QEMU_EFI.fd"}
     fi
   fi
@@ -43,10 +43,10 @@ else
 fi
 
 if [ $ARCH = x86_64 ]; then
-  QEMU_SYSTEM_x86_64="${QEMU_SYSTEM_x86_64:=qemu-system-x86_64}"
+  QEMU_SYSTEM="${QEMU_SYSTEM:=qemu-system-x86_64}"
   QEMU_CPU="${QEMU_CPU:=qemu64,+smep,+smap}"
-elif [ $ARCH = aarch64 ]; then
-  QEMU_SYSTEM_x86_64="${QEMU_SYSTEM_x86_64:=qemu-system-aarch64}"
+elif [ $ARCH = arm64 ]; then
+  QEMU_SYSTEM="${QEMU_SYSTEM:=qemu-system-aarch64}"
   QEMU_CPU="${QEMU_CPU:=max}"
   QEMU_MACHINE="${QEMU_MACHINE:=virt}"
 fi
@@ -58,12 +58,12 @@ if [ -n "${ENABLE_SGX}" ]; then
   QEMU_CPU="host,+sgx-provisionkey"
   SGX_EPC="-object memory-backend-epc,id=mem1,size=64M,prealloc=on \
            -M sgx-epc.0.memdev=mem1,sgx-epc.0.node=0"
-  QEMU_SYSTEM_x86_64="sudo $QEMU_SYSTEM_x86_64"
+  QEMU_SYSTEM="sudo $QEMU_SYSTEM"
 fi
 
 set -x
 
-$QEMU_SYSTEM_x86_64 \
+$QEMU_SYSTEM \
   ${ACCEL:+ -accel ${ACCEL}} \
   ${QEMU_BIOS:+ -bios ${QEMU_BIOS}} \
   ${KERNEL:+ -kernel "${KERNEL}"} \
