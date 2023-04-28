@@ -1,5 +1,46 @@
 # qemu-tools
 
+## Dependencies
+Install [go-task](https://taskfile.dev/#/installation) as a task-runner.
+```
+sudo sh -c "$(curl -ssL https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+```
+
+debootstrap:
+```
+sudo apt update && sudo apt install debootstrap
+```
+
+parted:
+```
+sudo apt update && sudo apt install parted
+```
+
+mkfs.vfat:
+```
+sudo apt update && sudo apt install dosfstools
+```
+
+qemu:
+```
+sudo apt update && sudo apt install qemu-system-arm qemu-system-x86
+```
+
+## Create the image
+
+```
+task create-image-arm64 # for an arm64 image
+task create-image-x86_64 # for an x86_64 image
+```
+
+## Start qemu
+```
+task qemu-arm64 # for an arm64 image
+task qemu-x86_64 # for an x86_64 image
+```
+
+## Old info
+
 What is the simplest way to install ubuntu within a qemu image?
 
 1. Create a qcow2 image:
