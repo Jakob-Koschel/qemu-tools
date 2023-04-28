@@ -124,3 +124,7 @@ To resize the logical volume (name should also pop up with `df -h`):
 ```
 sudo lvextend -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv
 ```
+otherwise use `resize2fs`:
+```
+sudo resize2fs /dev/sda3
+```
