@@ -40,7 +40,7 @@ if [ -n "$CHROOT_USERNAME" ]; then
     echo "set password for $CHROOT_USERNAME:"
     bash scripts/enter-chroot.sh "passwd $CHROOT_USERNAME"
 
-    rm out/$CHROOT_USERNAME.id_rsa*
+    rm -f out/$CHROOT_USERNAME.id_rsa*
     ssh-keygen -f out/$CHROOT_USERNAME.id_rsa -t rsa -N ''
     sudo mkdir -p $CHROOT/home/$CHROOT_USERNAME/.ssh/
     cat out/$CHROOT_USERNAME.id_rsa.pub | sudo tee $CHROOT/home/$CHROOT_USERNAME/.ssh/authorized_keys
