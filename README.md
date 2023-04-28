@@ -39,6 +39,13 @@ task qemu-arm64 # for an arm64 image
 task qemu-x86_64 # for an x86_64 image
 ```
 
+## SSH
+somehow the output from qemu is quite broken and often truncates a big portion of the screen.
+To just ssh into the machine do:
+```
+task ssh
+```
+
 ## Old info
 
 What is the simplest way to install ubuntu within a qemu image?
