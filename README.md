@@ -55,7 +55,7 @@ QEMU_9P_SHARED_FOLDER=<path>
 Within the VM run:
 ```
 mkdir -p /tmp/shared
-sudo mount -t 9p -o trans=virtio test_mount /tmp/shared/ -oversion=9p2000.L,posixacl,msize=104857600,cache=loose
+sudo mount -t 9p -o trans=virtio test_mount /tmp/shared/ -oversion=9p2000.L,posixacl,msize=104857600,rw
 ```
 
 ## Old info
