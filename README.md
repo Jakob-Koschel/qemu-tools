@@ -46,6 +46,18 @@ To just ssh into the machine do:
 task ssh
 ```
 
+## Shared folder between VM and host
+Create a `.env` file and add
+```
+QEMU_9P_SHARED_FOLDER=<path>
+```
+
+Within the VM run:
+```
+mkdir -p /tmp/shared
+sudo mount -t 9p -o trans=virtio test_mount /tmp/shared/ -oversion=9p2000.L,posixacl,msize=104857600,cache=loose
+```
+
 ## Old info
 
 What is the simplest way to install ubuntu within a qemu image?
