@@ -51,8 +51,10 @@ elif [ $ARCH = arm64 ]; then
   QEMU_MACHINE="${QEMU_MACHINE:=virt}"
 fi
 
-DRIVE="file=./${IMAGE},format=raw"
-# APPEND="${APPEND} root=/dev/sda2"
+if [ -z "$DRIVE" ]; then
+  DRIVE="file=./${IMAGE},format=raw"
+  # APPEND="${APPEND} root=/dev/sda2"
+fi
 
 if [ -n "${ENABLE_SGX}" ]; then
   QEMU_CPU="host,+sgx-provisionkey"
@@ -73,6 +75,7 @@ $QEMU_SYSTEM \
   ${QEMU_NET_DEVICE:+ -device "${QEMU_NET_DEVICE}"} \
   ${QEMU_NETDEV:+ -netdev "${QEMU_NETDEV}${QEMU_SSH_PORT:+,hostfwd=tcp::${QEMU_SSH_PORT}-:22}"} \
   ${HDA:+ -hda "${HDA}"} \
+  ${HDB:+ -hdb "${HDB}"} \
   ${ATTACH_GDB:+ -gdb tcp::${GDB_PORT}} \
   ${ATTACH_GDB:+ -S} \
   ${QEMU_MACHINE:+ -machine ${QEMU_MACHINE}} \
