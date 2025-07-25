@@ -72,6 +72,7 @@ $QEMU_SYSTEM \
   ${INITRD:+ -initrd "${INITRD}"} \
   ${APPEND:+ -append "${APPEND}"} \
   ${DRIVE:+ -drive "${DRIVE}"} \
+  ${SECONDARY_DRIVE:+ -drive file="${SECONDARY_DRIVE}"} \
   ${QEMU_NET_DEVICE:+ -device "${QEMU_NET_DEVICE}"} \
   ${QEMU_NETDEV:+ -netdev "${QEMU_NETDEV}${QEMU_SSH_PORT:+,hostfwd=tcp::${QEMU_SSH_PORT}-:22}"} \
   ${HDA:+ -hda "${HDA}"} \
